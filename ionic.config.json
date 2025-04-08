@@ -1,0 +1,7 @@
+{
+  "name": "github-widget",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
