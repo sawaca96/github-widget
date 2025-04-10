@@ -24,6 +24,41 @@
 
         </activity>
 
+        <receiver
+            android:name=".GitHubWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/github_widget_info" />
+        </receiver>
+        
+        <!-- 부팅 시 서비스 시작 리시버 -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- GitHub 알림 서비스 등록 -->
+        <service 
+            android:name=".NotificationService"
+            android:enabled="true"
+            android:exported="false" 
+            android:foregroundServiceType="dataSync" />
+            
+        <!-- 위젯 데이터 제공 서비스 등록 -->
+        <service
+            android:name=".NotificationWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:enabled="true"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -36,6 +71,16 @@
     </application>
 
     <!-- Permissions -->
-
+    <!-- 네트워크 통신을 통해 GitHub API에 접근하기 위한 인터넷 사용 권한 -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 기기 부팅 완료 시 앱 자동 실행을 위한 권한 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 기기가 절전 모드로 진입하더라도 서비스를 계속 실행하기 위한 권한 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 포그라운드 서비스 실행을 위한 권한 (Android 9.0 이상 필수) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 데이터 동기화 유형의 포그라운드 서비스 실행 권한 (Android 14 이상) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- 사용자에게 알림을 표시하기 위한 권한 (Android 13 이상 필수) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

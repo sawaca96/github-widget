@@ -12,7 +12,9 @@ export const authReady = ref(false);
  */
 export const signInWithGithub = async (): Promise<SignInResult> => {
   try {
-    const result = await FirebaseAuthentication.signInWithGithub();
+    const result = await FirebaseAuthentication.signInWithGithub({
+      scopes: ['notifications'],
+    });
     currentUser.value = result.user;
     return result;
   } catch (error: any) {
@@ -55,21 +57,6 @@ export const setupAuthStateListener = async (): Promise<() => Promise<void>> => 
   }
   
   return listener.remove;
-};
-
-/**
- * 현재 사용자의 ID 토큰 가져오기
- * @param forceRefresh 토큰을 강제로 새로고침할지 여부
- * @returns ID 토큰 정보
- */
-export const getIdToken = async (forceRefresh = false): Promise<string | null> => {
-  try {
-    const result = await FirebaseAuthentication.getIdToken({ forceRefresh });
-    return result.token;
-  } catch (error) {
-    console.error('ID 토큰 가져오기 오류:', error);
-    return null;
-  }
 };
 
 /**

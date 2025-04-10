@@ -2,6 +2,13 @@
 <resources>
     <string name="app_name">github-widget</string>
     <string name="title_activity_main">github-widget</string>
-    <string name="package_name">io.ionic.starter</string>
-    <string name="custom_url_scheme">io.ionic.starter</string>
+    <string name="package_name">com.sawaca96.githubwidget</string>
+    <string name="custom_url_scheme">com.sawaca96.githubwidget</string>
+    <string name="github_login_required">앱에서 GitHub 로그인이 필요합니다.</string>
+    <string name="github_service_start">GitHub 알림 서비스를 시작합니다.</string>
+    <string name="github_widget_enabled">GitHub 위젯이 활성화되었습니다.</string>
+    <string name="github_widget_disabled">GitHub 위젯이 비활성화되었습니다.</string>
+    <string name="github_notification_title">GitHub 알림</string>
+    <string name="github_no_notifications">알림이 없습니다.</string>
+    <string name="error_prefix">오류: %1$s</string>
 </resources>
