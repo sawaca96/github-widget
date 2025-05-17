@@ -127,6 +127,8 @@ public class NotificationService extends Service {
     }
 
     private void updateNotifications() {
+        mainHandler.post(() -> updateWidgetLoadingState(true));
+
         SharedPreferences prefs = this.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         final String token = prefs.getString(TOKEN_KEY, null);
         final String username = prefs.getString(USERNAME_KEY, null);
@@ -135,6 +137,7 @@ public class NotificationService extends Service {
             this.updateWidgetsWithMessage(this.getString(R.string.github_login_required));
             prefs.edit().remove(NOTIFICATIONS_KEY).apply();
             notifyWidgetDataChanged();
+            mainHandler.post(() -> updateWidgetLoadingState(false));
             return;
         }
 
@@ -155,6 +158,7 @@ public class NotificationService extends Service {
                         this.updateWidgetsWithNotifications();
                     }
                     notifyWidgetDataChanged();
+                    updateWidgetLoadingState(false);
                 });
             } catch (Exception e) {
                 Log.e(TAG, "알림 가져오기 오류: " + e.getMessage(), e);
@@ -163,6 +167,7 @@ public class NotificationService extends Service {
                     UIUtils.showLongToast(this, "GitHub 알림 가져오기 실패: " + e.getMessage());
                     prefs.edit().remove(NOTIFICATIONS_KEY).apply();
                     notifyWidgetDataChanged();
+                    updateWidgetLoadingState(false);
                 });
             }
         });
@@ -186,6 +191,28 @@ public class NotificationService extends Service {
         editor.apply();
     }
 
+    private void updateWidgetLoadingState(boolean isLoading) {
+        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
+        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, GitHubWidgetProvider.class));
+        RemoteViews views = new RemoteViews(getPackageName(), R.layout.github_widget_layout);
+
+        if (isLoading) {
+            views.setViewVisibility(R.id.btnRefresh, View.GONE);
+            views.setViewVisibility(R.id.pbRefresh, View.VISIBLE);
+        } else {
+            views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
+            views.setViewVisibility(R.id.pbRefresh, View.GONE);
+        }
+
+        for (int appWidgetId : appWidgetIds) {
+            try {
+                appWidgetManager.updateAppWidget(appWidgetId, views);
+            } catch (Exception e) {
+                Log.e(TAG, "위젯 로딩 상태 업데이트 오류: " + appWidgetId, e);
+            }
+        }
+    }
+
     private void updateWidgetsWithNotifications() {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(
@@ -195,6 +222,8 @@ public class NotificationService extends Service {
                 RemoteViews views = new RemoteViews(this.getPackageName(), R.layout.github_widget_layout);
                 views.setViewVisibility(R.id.lvNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.tvNoNotifications, View.GONE);
+                views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
+                views.setViewVisibility(R.id.pbRefresh, View.GONE);
 
                 Intent serviceIntent = new Intent(this, NotificationWidgetService.class);
                 serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
@@ -219,6 +248,8 @@ public class NotificationService extends Service {
                 views.setTextViewText(R.id.tvNoNotifications, message);
                 views.setViewVisibility(R.id.tvNoNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.lvNotifications, View.GONE);
+                views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
+                views.setViewVisibility(R.id.pbRefresh, View.GONE);
 
                 GitHubWidgetProvider.updateAppWidget(this, appWidgetManager, appWidgetId, views);
 

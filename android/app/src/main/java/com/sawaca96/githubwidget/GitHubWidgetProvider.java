@@ -39,6 +39,7 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
         try {
             Intent serviceIntent = new Intent(context, NotificationService.class);
             context.startService(serviceIntent);
+            // TODO: 토스트 꼭 필요한 곳에만 쓰기
             UIUtils.showShortToast(context, context.getString(R.string.github_widget_enabled));
         } catch (Exception e) {
             Log.e(TAG, "서비스 시작 오류: " + e.getMessage());
@@ -92,7 +93,6 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
             views.setOnClickPendingIntent(R.id.tvWidgetTitle, getAppLaunchPendingIntent(context, appWidgetId));
 
             // 새로고침 버튼 클릭 리스너 설정
-            // TODO: 리프래시 버튼 눌르면 회전 애니메이션
             Intent refreshIntent = new Intent(context, NotificationService.class);
             refreshIntent.setAction(GithubWidgetConstant.ACTION_UPDATE_NOTIFICATIONS);
             refreshIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[] { appWidgetId });
