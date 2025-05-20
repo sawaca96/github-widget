@@ -71,7 +71,8 @@ public class GithubClient {
                             value.getRepository().getFullName(),
                             value.getUpdatedAt(),
                             value.getSubject().getType(),
-                            pullRequestId));
+                            pullRequestId,
+                            value.getReason()));
                 }
                 return notifications;
             } else {

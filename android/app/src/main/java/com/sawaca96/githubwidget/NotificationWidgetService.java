@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
@@ -101,23 +103,39 @@ class NotificationRemoteViewsFactory implements RemoteViewsService.RemoteViewsFa
         Notification notification = notifications.get(position);
         RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.github_notification_item);
 
-        // TODO: 제목 레포이름 안나옴
-        rv.setTextViewText(R.id.widgetNotificationTitle, notification.getTitle());
-        rv.setTextViewText(R.id.widgetNotificationRepoName, notification.getRepoName());
-        rv.setTextViewText(R.id.widgetNotificationUpdatedAt, notification.timeDiff());
-        setIcon(notification.getType(), rv);
+        String repoName = notification.getRepoName();
+        String prNumberString = "";
+        if (notification.getPullRequestId() != null && !notification.getPullRequestId().isEmpty()) {
+            prNumberString = " #" + notification.getPullRequestId();
+        }
 
-        // TODO: 클릭시 인덴트
-        // TODO: layout 이전에 쓰던거 사용하기
+        // PR번호에만 특정 스타일 적용
+        SpannableString repoNameWithPrSpannable = new SpannableString(repoName + prNumberString);
+        if (!prNumberString.isEmpty()) {
+            int prNumberColor = android.graphics.Color.rgb(0x8B, 0x94, 0x9E);
+            repoNameWithPrSpannable.setSpan(
+                    new android.text.style.ForegroundColorSpan(prNumberColor),
+                    repoName.length(),
+                    repoName.length() + prNumberString.length(),
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        rv.setTextViewText(R.id.widgetNotificationRepoName, repoNameWithPrSpannable);
+        rv.setTextViewText(R.id.widgetNotificationTitle, notification.getTitle());
+        rv.setTextViewText(R.id.widgetNotificationUpdatedAt, notification.timeDiff());
+        rv.setTextViewText(R.id.widgetNotificationStatus, notification.getReason());
+        setIcon(notification.getType(), rv);
         return rv;
     }
 
     private void setIcon(String type, RemoteViews rv) {
-        int iconResId = R.drawable.ic_octicon_question; // 기본 아이콘
+        int iconResId = R.drawable.ic_octicon_question;
+        int iconTintColor = android.graphics.Color.parseColor("#8B949E");
+
         if (type != null) {
             switch (type) {
                 case "CheckSuite":
                     iconResId = R.drawable.ic_octicon_sync;
+                    iconTintColor = android.graphics.Color.parseColor("#2DA44E");
                     break;
                 case "Commit":
                     iconResId = R.drawable.ic_octicon_git_commit;
@@ -127,19 +145,23 @@ class NotificationRemoteViewsFactory implements RemoteViewsService.RemoteViewsFa
                     break;
                 case "Issue":
                     iconResId = R.drawable.ic_octicon_issue_opened;
+                    iconTintColor = android.graphics.Color.parseColor("#2DA44E");
                     break;
                 case "PullRequest":
                     iconResId = R.drawable.ic_octicon_git_pull_request;
+                    iconTintColor = android.graphics.Color.parseColor("#2DA44E");
                     break;
                 case "Release":
                     iconResId = R.drawable.ic_octicon_tag;
                     break;
                 case "RepositoryVulnerabilityAlert":
                     iconResId = R.drawable.ic_octicon_alert;
+                    iconTintColor = android.graphics.Color.parseColor("#D73A49");
                     break;
             }
         }
         rv.setImageViewResource(R.id.widgetNotificationIcon, iconResId);
+        rv.setInt(R.id.widgetNotificationIcon, "setColorFilter", iconTintColor);
     }
 
     @Override

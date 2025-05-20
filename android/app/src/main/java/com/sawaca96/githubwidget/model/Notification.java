@@ -16,6 +16,7 @@ public class Notification {
     private String repoFullName;
     private String type;
     private String pullRequestId;
+    private String reason;
 
     public Notification(
             String id,
@@ -24,7 +25,8 @@ public class Notification {
             String repoFullName,
             String updatedAt,
             String type,
-            String pullRequestId) {
+            String pullRequestId,
+            String reason) {
         this.id = id;
         this.title = title;
         this.repoName = repoName;
@@ -32,6 +34,7 @@ public class Notification {
         this.updatedAt = updatedAt;
         this.type = type;
         this.pullRequestId = pullRequestId;
+        this.reason = reason;
     }
 
     public String getId() {
@@ -60,6 +63,10 @@ public class Notification {
 
     public String getPullRequestId() {
         return pullRequestId;
+    }
+
+    public String getReason() {
+        return reason;
     }
 
     public String timeDiff() {
