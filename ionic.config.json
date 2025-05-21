@@ -1,5 +1,5 @@
 {
-  "name": "github-widget",
+  "name": "GithubWidget",
   "integrations": {
     "capacitor": {}
   },

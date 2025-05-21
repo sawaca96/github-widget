@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">github-widget</string>
-    <string name="title_activity_main">github-widget</string>
+    <string name="app_name">GithubWidget</string>
+    <string name="title_activity_main">GithubWidget</string>
     <string name="package_name">com.sawaca96.githubwidget</string>
     <string name="custom_url_scheme">com.sawaca96.githubwidget</string>
     <string name="github_login_required">앱에서 GitHub 로그인이 필요합니다.</string>

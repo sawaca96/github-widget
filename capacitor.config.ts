@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.sawaca96.githubwidget',
-  appName: 'github-widget',
+  appName: 'GithubWidget',
   webDir: 'dist',
   plugins: {
     FirebaseAuthentication: {
