@@ -39,8 +39,6 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
         try {
             Intent serviceIntent = new Intent(context, NotificationService.class);
             context.startService(serviceIntent);
-            // TODO: 토스트 꼭 필요한 곳에만 쓰기
-            UIUtils.showShortToast(context, context.getString(R.string.github_widget_enabled));
         } catch (Exception e) {
             Log.e(TAG, "서비스 시작 오류: " + e.getMessage());
         }
@@ -55,7 +53,6 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
     public void onDisabled(Context context) {
         Intent intent = new Intent(context, NotificationService.class);
         context.stopService(intent);
-        UIUtils.showShortToast(context, context.getString(R.string.github_widget_disabled));
     }
 
     /**

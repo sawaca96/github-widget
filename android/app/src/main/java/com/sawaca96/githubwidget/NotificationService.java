@@ -68,7 +68,6 @@ public class NotificationService extends Service {
 
         try {
             this.startForeground();
-            UIUtils.showLongToast(this, "GitHub 알림 서비스가 시작되었습니다.");
         } catch (Exception e) {
             Log.e(TAG, "포그라운드 서비스 시작 중 오류: " + e.getMessage(), e);
         }
@@ -118,7 +117,6 @@ public class NotificationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && GithubWidgetConstant.ACTION_UPDATE_NOTIFICATIONS.equals(intent.getAction())) {
-            UIUtils.showShortToast(this, "GitHub 알림을 새로고침 중입니다...");
             this.updateNotifications();
         } else {
             this.updateNotifications();
@@ -164,7 +162,6 @@ public class NotificationService extends Service {
                 Log.e(TAG, "알림 가져오기 오류: " + e.getMessage(), e);
                 this.mainHandler.post(() -> {
                     this.updateWidgetsWithMessage(this.getString(R.string.error_prefix, e.getMessage()));
-                    UIUtils.showLongToast(this, "GitHub 알림 가져오기 실패: " + e.getMessage());
                     prefs.edit().remove(NOTIFICATIONS_KEY).apply();
                     notifyWidgetDataChanged();
                     updateWidgetLoadingState(false);
