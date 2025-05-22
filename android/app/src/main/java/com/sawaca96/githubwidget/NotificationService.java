@@ -63,37 +63,8 @@ public class NotificationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
         this.mainHandler = new Handler(Looper.getMainLooper());
 
-        try {
-            this.startForeground();
-        } catch (Exception e) {
-            Log.e(TAG, "포그라운드 서비스 시작 중 오류: " + e.getMessage(), e);
-        }
-    }
-
-    private void startForeground() {
-        NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW);
-        channel.setDescription(CHANNEL_DESC);
-
-        NotificationManager notificationManager = getSystemService(NotificationManager.class);
-        notificationManager.createNotificationChannel(channel);
-
-        Intent notificationIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
-        PendingIntent pendingIntent = GitHubWidgetProvider.getAppLaunchPendingIntent(this, 0);
-
-        android.app.Notification.Builder builder = new android.app.Notification.Builder(this, CHANNEL_ID)
-                .setContentTitle("GitHub 위젯")
-                .setContentText("GitHub 알림을 동기화하는 중입니다.")
-                .setSmallIcon(R.drawable.ic_github)
-                .setContentIntent(pendingIntent);
-
-        // 안드로이드 빌트인 메서드
-        startForeground(NOTIFICATION_ID, builder.build());
     }
 
     /**

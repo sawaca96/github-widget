@@ -50,8 +50,7 @@
         <service 
             android:name=".NotificationService"
             android:enabled="true"
-            android:exported="false" 
-            android:foregroundServiceType="dataSync" />
+            android:exported="false" />
             
         <!-- 위젯 데이터 제공 서비스 등록 -->
         <service
@@ -78,10 +77,6 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- 기기가 절전 모드로 진입하더라도 서비스를 계속 실행하기 위한 권한 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- 포그라운드 서비스 실행을 위한 권한 (Android 9.0 이상 필수) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- 데이터 동기화 유형의 포그라운드 서비스 실행 권한 (Android 14 이상) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- 사용자에게 알림을 표시하기 위한 권한 (Android 13 이상 필수) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
