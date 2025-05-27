@@ -1,8 +1,5 @@
 package com.sawaca96.githubwidget;
 
-import android.app.AlarmManager;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.appwidget.AppWidgetManager;
@@ -11,38 +8,29 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
-import android.widget.Toast;
 
 import com.sawaca96.githubwidget.model.Notification;
-import com.sawaca96.githubwidget.utils.UIUtils;
+import com.google.gson.JsonSyntaxException;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class NotificationService extends Service {
     private static final String TAG = "NotificationService";
     private static final String PREFS_NAME = GithubWidgetConstant.PREFS_NAME;
     private static final String TOKEN_KEY = GithubWidgetConstant.TOKEN_KEY;
     private static final String USERNAME_KEY = GithubWidgetConstant.USERNAME_KEY;
-    private static final long UPDATE_INTERVAL = 30 * 60 * 1000L;
-    private static final String CHANNEL_ID = "github_widget_channel";
-    private static final String CHANNEL_NAME = "GitHub 위젯 알림";
-    private static final String CHANNEL_DESC = "GitHub 위젯의 백그라운드 서비스 알림입니다.";
-    private static final int NOTIFICATION_ID = 1001;
     private static final String NOTIFICATIONS_KEY = GithubWidgetConstant.NOTIFICATIONS_KEY;
 
     private Handler mainHandler;
+    private ExecutorService executorService;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -63,6 +51,7 @@ public class NotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         this.mainHandler = new Handler(Looper.getMainLooper());
+        this.executorService = Executors.newSingleThreadExecutor();
     }
 
     /**
@@ -85,34 +74,61 @@ public class NotificationService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (this.executorService == null || this.executorService.isShutdown()) {
+            this.executorService = Executors.newSingleThreadExecutor();
+        }
+
+        if (this.mainHandler == null) {
+            this.mainHandler = new Handler(Looper.getMainLooper());
+        }
+
         this.updateNotifications();
         return START_STICKY;
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (this.executorService != null && !this.executorService.isShutdown()) {
+            this.executorService.shutdown();
+        }
+    }
+
     private void updateNotifications() {
-        mainHandler.post(() -> updateWidgetLoadingState(true));
+        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
+        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, GitHubWidgetProvider.class));
+
+        if (appWidgetIds == null || appWidgetIds.length == 0) {
+            Log.w(TAG, "업데이트할 위젯이 없음 - 서비스 종료");
+            stopSelf();
+            return;
+        }
+
+        if (this.mainHandler == null) {
+            Log.e(TAG, "this.mainHandler가 null입니다");
+            return;
+        }
+
+        this.mainHandler.post(() -> updateWidgetLoadingState(true));
 
         SharedPreferences prefs = this.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        final String token = prefs.getString(TOKEN_KEY, null);
-        final String username = prefs.getString(USERNAME_KEY, null);
+        final String token = prefs.getString(TOKEN_KEY, "");
+        final String username = prefs.getString(USERNAME_KEY, "");
 
-        if (token == null || username == null) {
-            this.updateWidgetsWithMessage(this.getString(R.string.github_login_required));
-            prefs.edit().remove(NOTIFICATIONS_KEY).apply();
-            notifyWidgetDataChanged();
-            mainHandler.post(() -> updateWidgetLoadingState(false));
+        if (token.isEmpty() || username.isEmpty()) {
+            this.handleError(this.getString(R.string.github_login_required));
+            this.mainHandler.post(() -> updateWidgetLoadingState(false));
             return;
         }
 
         GithubClient githubClient = new GithubClient(token);
-        this.updateWidgetsWithMessage(username + this.getString(R.string.github_notification_title) + "을 확인 중...");
+        this.updateWidgetsWithMessage(username + "님의 알림을 확인중입니다.");
 
-        Executors.newSingleThreadExecutor().execute(() -> {
+        this.executorService.execute(() -> {
             try {
                 List<com.sawaca96.githubwidget.model.Notification> notifications = githubClient
                         .fetchNotifications();
-
-                saveNotificationsToPrefs(notifications);
+                this.saveNotificationsToPrefs(notifications);
 
                 this.mainHandler.post(() -> {
                     if (notifications.isEmpty()) {
@@ -120,17 +136,28 @@ public class NotificationService extends Service {
                     } else {
                         this.updateWidgetsWithNotifications();
                     }
-                    notifyWidgetDataChanged();
-                    updateWidgetLoadingState(false);
+                    this.notifyWidgetDataChanged();
                 });
+
+            } catch (SecurityException | IllegalStateException e) {
+                Log.e(TAG, "인증 오류: " + e.getMessage(), e);
+                this.handleError(GithubWidgetConstant.ERROR_AUTH);
+            } catch (JsonSyntaxException e) {
+                Log.e(TAG, "JSON 파싱 오류: " + e.getMessage(), e);
+                this.handleError(GithubWidgetConstant.ERROR_PARSING);
             } catch (Exception e) {
-                Log.e(TAG, "알림 가져오기 오류: " + e.getMessage(), e);
-                this.mainHandler.post(() -> {
-                    this.updateWidgetsWithMessage(this.getString(R.string.error_prefix, e.getMessage()));
-                    prefs.edit().remove(NOTIFICATIONS_KEY).apply();
-                    notifyWidgetDataChanged();
-                    updateWidgetLoadingState(false);
-                });
+                Log.e(TAG, "예상치 못한 오류: " + e.getMessage(), e);
+                String errorMessage;
+                if (e.getCause() instanceof java.net.UnknownHostException ||
+                        e.getCause() instanceof java.net.SocketTimeoutException ||
+                        e.getMessage() != null && e.getMessage().contains("network")) {
+                    errorMessage = GithubWidgetConstant.ERROR_NETWORK;
+                } else {
+                    errorMessage = this.getString(R.string.error_prefix, e.getMessage());
+                }
+                this.handleError(errorMessage);
+            } finally {
+                this.mainHandler.post(() -> updateWidgetLoadingState(false));
             }
         });
     }
@@ -138,13 +165,13 @@ public class NotificationService extends Service {
     private void saveNotificationsToPrefs(List<Notification> notifications) {
         SharedPreferences prefs = this.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
+
         if (notifications == null || notifications.isEmpty()) {
             editor.remove(NOTIFICATIONS_KEY);
         } else {
             try {
                 com.google.gson.Gson gson = new com.google.gson.Gson();
                 String jsonString = gson.toJson(notifications);
-
                 editor.putString(NOTIFICATIONS_KEY, jsonString);
             } catch (Exception e) {
                 editor.remove(NOTIFICATIONS_KEY);
@@ -153,24 +180,39 @@ public class NotificationService extends Service {
         editor.apply();
     }
 
+    private void handleError(String errorMessage) {
+        this.mainHandler.post(() -> {
+            this.updateWidgetsWithMessage(errorMessage);
+            SharedPreferences prefs = this.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit().remove(NOTIFICATIONS_KEY).apply();
+            notifyWidgetDataChanged();
+        });
+    }
+
     private void updateWidgetLoadingState(boolean isLoading) {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, GitHubWidgetProvider.class));
-        RemoteViews views = new RemoteViews(getPackageName(), R.layout.github_widget_layout);
 
-        if (isLoading) {
-            views.setViewVisibility(R.id.btnRefresh, View.GONE);
-            views.setViewVisibility(R.id.pbRefresh, View.VISIBLE);
-        } else {
-            views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
-            views.setViewVisibility(R.id.pbRefresh, View.GONE);
+        if (appWidgetIds == null || appWidgetIds.length == 0) {
+            Log.w(TAG, "업데이트할 위젯이 없음");
+            return;
         }
 
         for (int appWidgetId : appWidgetIds) {
             try {
+                RemoteViews views = createBaseRemoteViews(appWidgetId);
+
+                if (isLoading) {
+                    views.setViewVisibility(R.id.btnRefresh, View.GONE);
+                    views.setViewVisibility(R.id.pbRefresh, View.VISIBLE);
+                } else {
+                    views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
+                    views.setViewVisibility(R.id.pbRefresh, View.GONE);
+                }
+
                 appWidgetManager.updateAppWidget(appWidgetId, views);
             } catch (Exception e) {
-                Log.e(TAG, "위젯 로딩 상태 업데이트 오류: " + appWidgetId, e);
+                Log.w(TAG, "위젯 로딩 상태 업데이트 실패: " + appWidgetId, e);
             }
         }
     }
@@ -179,9 +221,15 @@ public class NotificationService extends Service {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(
                 new ComponentName(this, GitHubWidgetProvider.class));
+
+        if (appWidgetIds == null || appWidgetIds.length == 0) {
+            Log.w(TAG, "업데이트할 위젯이 없음");
+            return;
+        }
+
         for (int appWidgetId : appWidgetIds) {
             try {
-                RemoteViews views = new RemoteViews(this.getPackageName(), R.layout.github_widget_layout);
+                RemoteViews views = createBaseRemoteViews(appWidgetId);
                 views.setViewVisibility(R.id.lvNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.tvNoNotifications, View.GONE);
                 views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
@@ -192,31 +240,42 @@ public class NotificationService extends Service {
                 serviceIntent.setData(Uri.parse(serviceIntent.toUri(Intent.URI_INTENT_SCHEME)));
                 views.setRemoteAdapter(R.id.lvNotifications, serviceIntent);
 
-                GitHubWidgetProvider.updateAppWidget(this, appWidgetManager, appWidgetId, views);
+                appWidgetManager.updateAppWidget(appWidgetId, views);
 
             } catch (Exception e) {
-                Log.e(TAG, "위젯 업데이트 중 오류 발생: " + e.getMessage(), e);
+                Log.w(TAG, "위젯 알림 업데이트 실패: " + appWidgetId + ", " + e.getMessage(), e);
             }
         }
     }
 
     private void updateWidgetsWithMessage(String message) {
+        if (message == null || message.trim().isEmpty()) {
+            Log.w(TAG, "빈 메시지로 위젯 업데이트 시도");
+            message = "알 수 없는 오류가 발생했습니다";
+        }
+
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(
                 new ComponentName(this, GitHubWidgetProvider.class));
+
+        if (appWidgetIds == null || appWidgetIds.length == 0) {
+            Log.w(TAG, "업데이트할 위젯이 없음");
+            return;
+        }
+
         for (int appWidgetId : appWidgetIds) {
             try {
-                RemoteViews views = new RemoteViews(this.getPackageName(), R.layout.github_widget_layout);
+                RemoteViews views = createBaseRemoteViews(appWidgetId);
                 views.setTextViewText(R.id.tvNoNotifications, message);
                 views.setViewVisibility(R.id.tvNoNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.lvNotifications, View.GONE);
                 views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
                 views.setViewVisibility(R.id.pbRefresh, View.GONE);
 
-                GitHubWidgetProvider.updateAppWidget(this, appWidgetManager, appWidgetId, views);
+                appWidgetManager.updateAppWidget(appWidgetId, views);
 
             } catch (Exception e) {
-                Log.e(TAG, "메시지 업데이트 중 오류 발생", e);
+                Log.w(TAG, "위젯 메시지 업데이트 실패: " + appWidgetId + ", " + e.getMessage(), e);
             }
         }
     }
@@ -224,8 +283,52 @@ public class NotificationService extends Service {
     private void notifyWidgetDataChanged() {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, GitHubWidgetProvider.class));
+
         if (appWidgetIds != null && appWidgetIds.length > 0) {
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lvNotifications);
+        } else {
+            Log.w(TAG, "데이터 변경 알림을 보낼 위젯이 없음");
         }
+    }
+
+    /**
+     * 기본 RemoteViews를 생성하고 PendingIntent를 설정합니다.
+     * 모든 위젯 업데이트에서 공통으로 사용되는 기본 설정을 포함합니다.
+     * 
+     * @param appWidgetId 위젯 ID (고유한 requestCode 생성용)
+     * @return 기본 설정이 완료된 RemoteViews 객체
+     */
+    private RemoteViews createBaseRemoteViews(int appWidgetId) {
+        RemoteViews views = new RemoteViews(getPackageName(), R.layout.github_widget_layout);
+
+        try {
+            // 앱 실행 PendingIntent
+            Intent appLaunchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+            if (appLaunchIntent != null) {
+                appLaunchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent appPendingIntent = PendingIntent.getActivity(
+                        this,
+                        appWidgetId * 100 + GithubWidgetConstant.PENDING_INTENT_APP_LAUNCH,
+                        appLaunchIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                views.setOnClickPendingIntent(R.id.tvWidgetTitle, appPendingIntent);
+            } else {
+                Log.w(TAG, "앱 실행 Intent를 찾을 수 없음");
+            }
+
+            // 새로고침 PendingIntent
+            Intent refreshIntent = new Intent(this, NotificationService.class);
+            PendingIntent refreshPendingIntent = PendingIntent.getService(
+                    this,
+                    appWidgetId * 100 + GithubWidgetConstant.PENDING_INTENT_REFRESH,
+                    refreshIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            views.setOnClickPendingIntent(R.id.btnRefresh, refreshPendingIntent);
+
+        } catch (Exception e) {
+            Log.e(TAG, "PendingIntent 설정 오류: " + e.getMessage(), e);
+        }
+
+        return views;
     }
 }
