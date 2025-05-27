@@ -77,6 +77,4 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- 기기가 절전 모드로 진입하더라도 서비스를 계속 실행하기 위한 권한 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- 사용자에게 알림을 표시하기 위한 권한 (Android 13 이상 필수) -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

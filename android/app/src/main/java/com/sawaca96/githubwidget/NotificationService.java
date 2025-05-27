@@ -42,7 +42,6 @@ public class NotificationService extends Service {
     private static final int NOTIFICATION_ID = 1001;
     private static final String NOTIFICATIONS_KEY = GithubWidgetConstant.NOTIFICATIONS_KEY;
 
-    private GithubClient githubClient;
     private Handler mainHandler;
 
     @Override
@@ -64,7 +63,6 @@ public class NotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         this.mainHandler = new Handler(Looper.getMainLooper());
-
     }
 
     /**
@@ -87,11 +85,7 @@ public class NotificationService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && GithubWidgetConstant.ACTION_UPDATE_NOTIFICATIONS.equals(intent.getAction())) {
-            this.updateNotifications();
-        } else {
-            this.updateNotifications();
-        }
+        this.updateNotifications();
         return START_STICKY;
     }
 
@@ -110,12 +104,12 @@ public class NotificationService extends Service {
             return;
         }
 
-        this.githubClient = new GithubClient(token);
+        GithubClient githubClient = new GithubClient(token);
         this.updateWidgetsWithMessage(username + this.getString(R.string.github_notification_title) + "을 확인 중...");
 
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                List<com.sawaca96.githubwidget.model.Notification> notifications = this.githubClient
+                List<com.sawaca96.githubwidget.model.Notification> notifications = githubClient
                         .fetchNotifications();
 
                 saveNotificationsToPrefs(notifications);

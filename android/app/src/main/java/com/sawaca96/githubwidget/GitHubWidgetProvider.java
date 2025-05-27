@@ -30,29 +30,14 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
     private static final String USERNAME_KEY = GithubWidgetConstant.USERNAME_KEY;
 
     /**
-     * 위젯의 처음 인스턴스가 배치될 때 호출됩니다.
-     *
-     * @param context 위젯이 실행되는 컨텍스트
-     */
-    @Override
-    public void onEnabled(Context context) {
-        try {
-            Intent serviceIntent = new Intent(context, NotificationService.class);
-            context.startService(serviceIntent);
-        } catch (Exception e) {
-            Log.e(TAG, "서비스 시작 오류: " + e.getMessage());
-        }
-    }
-
-    /**
      * 위젯의 마지막 인스턴스가 제거될 때 호출됩니다.
      *
      * @param context 위젯이 실행되는 컨텍스트
      */
     @Override
     public void onDisabled(Context context) {
-        Intent intent = new Intent(context, NotificationService.class);
-        context.stopService(intent);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().remove(GithubWidgetConstant.NOTIFICATIONS_KEY).apply();
     }
 
     /**
@@ -88,17 +73,8 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
         try {
             // 앱으로 이동하는 인텐트 설정
             views.setOnClickPendingIntent(R.id.tvWidgetTitle, getAppLaunchPendingIntent(context, appWidgetId));
-
             // 새로고침 버튼 클릭 리스너 설정
-            Intent refreshIntent = new Intent(context, NotificationService.class);
-            refreshIntent.setAction(GithubWidgetConstant.ACTION_UPDATE_NOTIFICATIONS);
-            refreshIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[] { appWidgetId });
-            PendingIntent refreshPendingIntent = PendingIntent.getService(
-                    context,
-                    appWidgetId * 100 + 2,
-                    refreshIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            views.setOnClickPendingIntent(R.id.btnRefresh, refreshPendingIntent);
+            views.setOnClickPendingIntent(R.id.btnRefresh, getRefreshPendingIntent(context, appWidgetId));
 
             // 위젯이 시각적으로 업데이트됨
             // UI 요소가 새 RemoteViews 객체에 정의된 대로 변경됨
@@ -117,6 +93,15 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
 
         appLaunchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return PendingIntent.getActivity(context, appWidgetId * 100 + 1, appLaunchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    public static PendingIntent getRefreshPendingIntent(Context context, int appWidgetId) {
+        Intent refreshIntent = new Intent(context, NotificationService.class);
+        return PendingIntent.getService(
+                context,
+                appWidgetId * 100 + 2,
+                refreshIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 }
