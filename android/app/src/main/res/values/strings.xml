@@ -9,4 +9,10 @@
     <string name="error_network_message">네트워크 연결을 확인해주세요.</string>
     <string name="error_auth_message">GitHub 인증이 만료되었습니다.</string>
     <string name="error_parsing_message">데이터 처리 중 오류가 발생했습니다.</string>
+
+    <!-- NotificationService 에서 사용하는 문자열 -->
+    <string name="channel_name">GitHub 위젯 업데이트</string>
+    <string name="channel_description">백그라운드에서 GitHub 알림을 동기화합니다.</string>
+    <string name="notification_title_syncing">GitHub 알림 동기화 중</string>
+    <string name="notification_message_syncing">최신 알림을 가져오고 있습니다...</string>
 </resources>

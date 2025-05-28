@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
 import android.util.Log;
+import androidx.core.content.ContextCompat;
 
 public class GitHubWidgetProvider extends AppWidgetProvider {
     private static final String TAG = "GitHubWidgetProvider";
@@ -39,7 +40,14 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         try {
             Intent serviceIntent = new Intent(context, NotificationService.class);
-            context.startService(serviceIntent);
+            /*
+             * Android 8.0 (API 레벨 26)부터 백그라운드에서 서비스 실행에 제한이 생겼습니다.
+             * 앱이 백그라운드에 있을 때 일반 startService()를 호출하면 IllegalStateException이 발생할 수 있습니다.
+             * ContextCompat.startForegroundService()는 이러한 제한 하에서도 서비스를 시작할 수 있게 합니다.
+             * 호출되면, 서비스는 5초 이내에 startForeground()를 호출하여 사용자에게 보이는 알림을 표시해야 합니다.
+             * 이는 Android 8.0 이상에서 서비스가 예기치 않게 종료될 위험이 있음을 의미합니다.
+             */
+            ContextCompat.startForegroundService(context, serviceIntent);
         } catch (Exception e) {
             Log.e(TAG, "서비스 시작 오류: " + e.getMessage());
         }

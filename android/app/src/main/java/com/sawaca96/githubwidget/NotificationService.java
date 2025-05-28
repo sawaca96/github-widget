@@ -1,5 +1,7 @@
 package com.sawaca96.githubwidget;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.appwidget.AppWidgetManager;
@@ -8,12 +10,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
+import androidx.core.app.NotificationCompat;
 
 import com.sawaca96.githubwidget.model.Notification;
 import com.google.gson.JsonSyntaxException;
@@ -28,6 +32,8 @@ public class NotificationService extends Service {
     private static final String TOKEN_KEY = GithubWidgetConstant.TOKEN_KEY;
     private static final String USERNAME_KEY = GithubWidgetConstant.USERNAME_KEY;
     private static final String NOTIFICATIONS_KEY = GithubWidgetConstant.NOTIFICATIONS_KEY;
+    private static final String CHANNEL_ID = "GitHubWidgetChannel";
+    private static final int NOTIFICATION_ID = 1;
 
     private Handler mainHandler;
     private ExecutorService executorService;
@@ -52,6 +58,28 @@ public class NotificationService extends Service {
         super.onCreate();
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.executorService = Executors.newSingleThreadExecutor();
+        createNotificationChannel();
+    }
+
+    /**
+     * Android 8.0 (API 레벨 26) 이상에서 백그라운드 서비스 실행에 제약이 생기면서,
+     * 백그라운드에서 시작된 서비스가 계속 실행되려면 `startForegroundService()`로 시작된 후
+     * 5초 이내에 `startForeground()`를 호출하여 포그라운드 서비스로 전환해야 합니다.
+     * `startForeground()`는 사용자에게 보이는 알림(Notification)을 필요로 하며,
+     * Android 8.0부터 이러한 모든 알림은 알림 채널(Notification Channel)에 속해야 합니다.
+     */
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_LOW;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
     }
 
     /**
@@ -74,13 +102,18 @@ public class NotificationService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (this.executorService == null || this.executorService.isShutdown()) {
-            this.executorService = Executors.newSingleThreadExecutor();
-        }
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
+                PendingIntent.FLAG_IMMUTABLE);
 
-        if (this.mainHandler == null) {
-            this.mainHandler = new Handler(Looper.getMainLooper());
-        }
+        android.app.Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.notification_title_syncing))
+                .setContentText(getString(R.string.notification_message_syncing))
+                .setSmallIcon(R.drawable.ic_github)
+                .setContentIntent(pendingIntent)
+                .build();
+
+        startForeground(NOTIFICATION_ID, notification);
 
         this.updateNotifications();
         return START_STICKY;
@@ -136,9 +169,7 @@ public class NotificationService extends Service {
                     } else {
                         this.updateWidgetsWithNotifications();
                     }
-                    this.mainHandler.postDelayed(() -> {
-                        this.notifyWidgetDataChanged();
-                    }, 100);
+                    this.notifyWidgetDataChanged();
                 });
 
             } catch (SecurityException | IllegalStateException e) {
