@@ -143,17 +143,17 @@ public class NotificationService extends Service {
 
             } catch (SecurityException | IllegalStateException e) {
                 Log.e(TAG, "인증 오류: " + e.getMessage(), e);
-                this.handleError(GithubWidgetConstant.ERROR_AUTH);
+                this.handleError(this.getString(R.string.error_auth_message));
             } catch (JsonSyntaxException e) {
                 Log.e(TAG, "JSON 파싱 오류: " + e.getMessage(), e);
-                this.handleError(GithubWidgetConstant.ERROR_PARSING);
+                this.handleError(this.getString(R.string.error_parsing_message));
             } catch (Exception e) {
                 Log.e(TAG, "예상치 못한 오류: " + e.getMessage(), e);
                 String errorMessage;
                 if (e.getCause() instanceof java.net.UnknownHostException ||
                         e.getCause() instanceof java.net.SocketTimeoutException ||
                         e.getMessage() != null && e.getMessage().contains("network")) {
-                    errorMessage = GithubWidgetConstant.ERROR_NETWORK;
+                    errorMessage = this.getString(R.string.error_network_message);
                 } else {
                     errorMessage = this.getString(R.string.error_prefix, e.getMessage());
                 }
