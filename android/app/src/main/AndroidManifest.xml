@@ -54,7 +54,7 @@
             
         <!-- 위젯 데이터 제공 서비스 등록 -->
         <service
-            android:name=".NotificationWidgetService"
+            android:name=".NotificationRemoteViewsService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:enabled="true"
             android:exported="false" />

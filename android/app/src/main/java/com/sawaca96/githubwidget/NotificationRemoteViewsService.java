@@ -13,7 +13,7 @@ import com.sawaca96.githubwidget.model.Notification;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NotificationWidgetService extends RemoteViewsService {
+public class NotificationRemoteViewsService extends RemoteViewsService {
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
         return new NotificationRemoteViewsFactory(this.getApplicationContext());

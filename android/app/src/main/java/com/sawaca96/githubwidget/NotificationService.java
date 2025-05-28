@@ -235,7 +235,7 @@ public class NotificationService extends Service {
                 views.setViewVisibility(R.id.lvNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.tvNoNotifications, View.GONE);
 
-                Intent serviceIntent = new Intent(this, NotificationWidgetService.class);
+                Intent serviceIntent = new Intent(this, NotificationRemoteViewsService.class);
                 serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
                 serviceIntent.setData(Uri.parse(serviceIntent.toUri(Intent.URI_INTENT_SCHEME)));
                 views.setRemoteAdapter(R.id.lvNotifications, serviceIntent);
