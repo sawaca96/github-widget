@@ -136,7 +136,9 @@ public class NotificationService extends Service {
                     } else {
                         this.updateWidgetsWithNotifications();
                     }
-                    this.notifyWidgetDataChanged();
+                    this.mainHandler.postDelayed(() -> {
+                        this.notifyWidgetDataChanged();
+                    }, 100);
                 });
 
             } catch (SecurityException | IllegalStateException e) {
@@ -203,11 +205,11 @@ public class NotificationService extends Service {
                 RemoteViews views = createBaseRemoteViews(appWidgetId);
 
                 if (isLoading) {
-                    views.setViewVisibility(R.id.btnRefresh, View.GONE);
-                    views.setViewVisibility(R.id.pbRefresh, View.VISIBLE);
+                    views.setViewVisibility(R.id.pbListLoading, View.VISIBLE);
+                    views.setViewVisibility(R.id.lvNotifications, View.GONE);
+                    views.setViewVisibility(R.id.tvNoNotifications, View.GONE);
                 } else {
-                    views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
-                    views.setViewVisibility(R.id.pbRefresh, View.GONE);
+                    views.setViewVisibility(R.id.pbListLoading, View.GONE);
                 }
 
                 appWidgetManager.updateAppWidget(appWidgetId, views);
@@ -232,8 +234,6 @@ public class NotificationService extends Service {
                 RemoteViews views = createBaseRemoteViews(appWidgetId);
                 views.setViewVisibility(R.id.lvNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.tvNoNotifications, View.GONE);
-                views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
-                views.setViewVisibility(R.id.pbRefresh, View.GONE);
 
                 Intent serviceIntent = new Intent(this, NotificationWidgetService.class);
                 serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
@@ -269,8 +269,6 @@ public class NotificationService extends Service {
                 views.setTextViewText(R.id.tvNoNotifications, message);
                 views.setViewVisibility(R.id.tvNoNotifications, View.VISIBLE);
                 views.setViewVisibility(R.id.lvNotifications, View.GONE);
-                views.setViewVisibility(R.id.btnRefresh, View.VISIBLE);
-                views.setViewVisibility(R.id.pbRefresh, View.GONE);
 
                 appWidgetManager.updateAppWidget(appWidgetId, views);
 
