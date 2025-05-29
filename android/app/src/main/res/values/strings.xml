@@ -9,8 +9,7 @@
     <string name="channel_description">백그라운드에서 GitHub 알림을 동기화합니다.</string>
     <string name="notification_title_syncing">GitHub 알림 동기화 중</string>
     <string name="notification_message_syncing">최신 알림을 가져오고 있습니다...</string>
-
-    <!-- 위젯 빈 상태 및 에러 메시지 -->
     <string name="widget_message_empty">새로운 알림이 없습니다.</string>
-    <string name="widget_message_error">알림을 불러오지 못했습니다.\잠시 후 다시 시도해 주세요.</string>
+    <string name="widget_message_error">알림을 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.</string>
+    <string name="widget_message_login_required">로그인이 필요합니다.\n로그인 화면으로 이동하기.</string>
 </resources>

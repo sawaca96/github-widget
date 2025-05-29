@@ -27,7 +27,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 // TODO: 클릭시 브라우저 열리도록
-// TODO: AppUpdate가 한번에 3번임
+// TODO: 로그아웃시 토큰 제거
+// TODO: 로그인 하고 리프래시 버튼 해도 데이터 안보임
 
 public class NotificationService extends Service {
     private static final String TAG = "NotificationService";
@@ -132,7 +133,8 @@ public class NotificationService extends Service {
 
     private void updateNotifications() {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
-        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, GitHubWidgetProvider.class));
+        ComponentName componentName = new ComponentName(this, GitHubWidgetProvider.class);
+        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
 
         if (appWidgetIds == null || appWidgetIds.length == 0) {
             Log.e(TAG, "업데이트할 위젯이 없음 - 서비스 종료");
@@ -140,31 +142,62 @@ public class NotificationService extends Service {
             return;
         }
 
+        for (int appWidgetId : appWidgetIds) {
+            RemoteViews views = createBaseRemoteViews(appWidgetId);
+            updateWidgetViewVisibility(views, "loading");
+            appWidgetManager.updateAppWidget(appWidgetId, views);
+        }
+
         SharedPreferences prefs = this.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         final String token = prefs.getString(TOKEN_KEY, "");
         final String username = prefs.getString(USERNAME_KEY, "");
 
         if (token.isEmpty() || username.isEmpty()) {
-            Log.e(TAG, "토큰 또는 사용자명이 없음 - 서비스 종료");
-            stopSelf();
+            for (int appWidgetId : appWidgetIds) {
+                RemoteViews views = createBaseRemoteViews(appWidgetId);
+                updateWidgetViewVisibility(views, "login_required");
+
+                Intent loginIntent = new Intent(this, MainActivity.class);
+                loginIntent.putExtra("navigate_to_login", true);
+                PendingIntent loginPendingIntent = PendingIntent.getActivity(
+                        this,
+                        appWidgetId * 100 + GithubWidgetConstant.PENDING_INTENT_LOGIN,
+                        loginIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                views.setOnClickPendingIntent(R.id.tvEmptyNotifications, loginPendingIntent);
+                appWidgetManager.updateAppWidget(appWidgetId, views);
+            }
             return;
         }
 
         GithubClient githubClient = new GithubClient(token);
 
-        this.mainHandler.post(() -> updateWidgetLoadingState(true));
         this.executorService.execute(() -> {
             List<com.sawaca96.githubwidget.model.Notification> notifications = null;
             try {
                 notifications = githubClient.fetchNotifications();
             } catch (Exception e) {
-                Log.e(TAG, "알림 가져오기 또는 저장 실패: " + e.getMessage(), e);
+                Log.e(TAG, "알림 가져오기 실패: " + e.getMessage(), e);
             } finally {
                 saveNotificationsToPrefs(notifications);
                 List<Notification> finalNotifications = notifications;
+
                 this.mainHandler.post(() -> {
-                    updateWidgetsWithNotifications(finalNotifications);
-                    updateWidgetLoadingState(false);
+                    for (int appWidgetId : appWidgetIds) {
+                        RemoteViews views = createBaseRemoteViews(appWidgetId);
+                        if (finalNotifications == null) {
+                            updateWidgetViewVisibility(views, "error");
+                        } else if (finalNotifications.isEmpty()) {
+                            updateWidgetViewVisibility(views, "empty");
+                        } else {
+                            views.setRemoteAdapter(R.id.lvNotifications,
+                                    new Intent(this, NotificationRemoteViewsService.class));
+                            updateWidgetViewVisibility(views, "list");
+                        }
+
+                        appWidgetManager.updateAppWidget(appWidgetId, views);
+                    }
+
                     if (finalNotifications != null && !finalNotifications.isEmpty()) {
                         notifyWidgetDataChanged();
                     }
@@ -185,76 +218,11 @@ public class NotificationService extends Service {
                 String jsonString = gson.toJson(notifications);
                 editor.putString(NOTIFICATIONS_KEY, jsonString);
             } catch (Exception e) {
+                Log.e(TAG, "알림 저장 실패 (Gson 직렬화 오류): " + e.getMessage(), e);
                 editor.remove(NOTIFICATIONS_KEY);
             }
         }
         editor.apply();
-    }
-
-    private void updateWidgetLoadingState(boolean isLoading) {
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
-        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(this, GitHubWidgetProvider.class));
-
-        for (int appWidgetId : appWidgetIds) {
-            try {
-                RemoteViews views = createBaseRemoteViews(appWidgetId);
-
-                if (isLoading) {
-                    views.setViewVisibility(R.id.pbListLoading, View.VISIBLE);
-                    views.setViewVisibility(R.id.lvNotifications, View.GONE);
-                    views.setViewVisibility(R.id.tvEmptyNotifications, View.GONE);
-                } else {
-                    views.setViewVisibility(R.id.pbListLoading, View.GONE);
-                }
-
-                appWidgetManager.updateAppWidget(appWidgetId, views);
-            } catch (Exception e) {
-                Log.w(TAG, "위젯 로딩 상태 업데이트 실패: " + appWidgetId, e);
-            }
-        }
-    }
-
-    private void updateWidgetsWithNotifications(List<Notification> notifications) {
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
-        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(
-                new ComponentName(this, GitHubWidgetProvider.class));
-
-        boolean isEmpty = notifications != null && notifications.isEmpty();
-        boolean isError = notifications == null;
-
-        for (int appWidgetId : appWidgetIds) {
-            try {
-                RemoteViews views = createBaseRemoteViews(appWidgetId);
-
-                if (isEmpty || isError) {
-                    views.setViewVisibility(R.id.lvNotifications, View.GONE);
-                    views.setViewVisibility(R.id.tvEmptyNotifications, View.VISIBLE);
-                    views.setTextViewText(R.id.tvEmptyNotifications,
-                            isError ? getString(R.string.widget_message_error)
-                                    : getString(R.string.widget_message_empty));
-                } else {
-                    Intent serviceIntent = new Intent(this, NotificationRemoteViewsService.class);
-                    serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-                    serviceIntent.setData(Uri.parse(serviceIntent.toUri(Intent.URI_INTENT_SCHEME)));
-                    views.setRemoteAdapter(R.id.lvNotifications, serviceIntent);
-                    views.setViewVisibility(R.id.lvNotifications, View.VISIBLE);
-                    views.setViewVisibility(R.id.tvEmptyNotifications, View.GONE);
-
-                }
-                views.setViewVisibility(R.id.pbListLoading, View.GONE);
-
-                appWidgetManager.updateAppWidget(appWidgetId, views);
-
-            } catch (Exception e) {
-                Log.e(TAG, "위젯 알림 업데이트 실패: " + appWidgetId + ", " + e.getMessage(), e);
-                RemoteViews errorViews = createBaseRemoteViews(appWidgetId);
-                errorViews.setViewVisibility(R.id.lvNotifications, View.GONE);
-                errorViews.setViewVisibility(R.id.pbListLoading, View.GONE);
-                errorViews.setViewVisibility(R.id.tvEmptyNotifications, View.VISIBLE);
-                errorViews.setTextViewText(R.id.tvEmptyNotifications, getString(R.string.widget_message_error));
-                appWidgetManager.updateAppWidget(appWidgetId, errorViews);
-            }
-        }
     }
 
     private void notifyWidgetDataChanged() {
@@ -307,5 +275,30 @@ public class NotificationService extends Service {
         }
 
         return views;
+    }
+
+    private void updateWidgetViewVisibility(RemoteViews views, String type) {
+        views.setViewVisibility(R.id.pbListLoading, type.equals("loading") ? View.VISIBLE : View.GONE);
+        if (type.equals("loading")) {
+            views.setViewVisibility(R.id.lvNotifications, View.GONE);
+            views.setViewVisibility(R.id.tvEmptyNotifications, View.GONE);
+        } else if (type.equals("list")) {
+            views.setViewVisibility(R.id.lvNotifications, View.VISIBLE);
+            views.setViewVisibility(R.id.tvEmptyNotifications, View.GONE);
+        } else if (type.equals("empty")) {
+            views.setViewVisibility(R.id.lvNotifications, View.GONE);
+            views.setViewVisibility(R.id.tvEmptyNotifications, View.VISIBLE);
+            views.setTextViewText(R.id.tvEmptyNotifications, getString(R.string.widget_message_empty));
+        } else if (type.equals("error")) {
+            views.setViewVisibility(R.id.lvNotifications, View.GONE);
+            views.setViewVisibility(R.id.tvEmptyNotifications, View.VISIBLE);
+            views.setTextViewText(R.id.tvEmptyNotifications, getString(R.string.widget_message_error));
+        } else if (type.equals("login_required")) {
+            views.setViewVisibility(R.id.lvNotifications, View.GONE);
+            views.setViewVisibility(R.id.pbListLoading, View.GONE);
+            views.setViewVisibility(R.id.tvEmptyNotifications, View.VISIBLE);
+            views.setTextViewText(R.id.tvEmptyNotifications, getString(R.string.widget_message_login_required));
+        }
+
     }
 }

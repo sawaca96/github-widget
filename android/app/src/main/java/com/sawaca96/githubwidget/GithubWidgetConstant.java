@@ -9,4 +9,5 @@ public class GithubWidgetConstant {
 
     public static final int PENDING_INTENT_APP_LAUNCH = 1;
     public static final int PENDING_INTENT_REFRESH = 2;
+    public static final int PENDING_INTENT_LOGIN = 3;
 }
