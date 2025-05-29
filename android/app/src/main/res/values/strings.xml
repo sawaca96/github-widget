@@ -2,17 +2,15 @@
 <resources>
     <string name="app_name">GithubWidget</string>
     <string name="title_activity_main">GithubWidget</string>
-    <string name="github_login_required">앱에서 GitHub 로그인이 필요합니다.</string>
-    <string name="github_no_notifications">알림이 없습니다.</string>
-    <string name="error_prefix">오류: %1$s</string>
     <string name="widget_name">Notifications</string>
-    <string name="error_network_message">네트워크 연결을 확인해주세요.</string>
-    <string name="error_auth_message">GitHub 인증이 만료되었습니다.</string>
-    <string name="error_parsing_message">데이터 처리 중 오류가 발생했습니다.</string>
 
     <!-- NotificationService 에서 사용하는 문자열 -->
     <string name="channel_name">GitHub 위젯 업데이트</string>
     <string name="channel_description">백그라운드에서 GitHub 알림을 동기화합니다.</string>
     <string name="notification_title_syncing">GitHub 알림 동기화 중</string>
     <string name="notification_message_syncing">최신 알림을 가져오고 있습니다...</string>
+
+    <!-- 위젯 빈 상태 및 에러 메시지 -->
+    <string name="widget_message_empty">새로운 알림이 없습니다.</string>
+    <string name="widget_message_error">알림을 불러오지 못했습니다.\잠시 후 다시 시도해 주세요.</string>
 </resources>

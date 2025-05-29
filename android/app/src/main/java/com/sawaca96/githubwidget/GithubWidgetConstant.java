@@ -7,7 +7,6 @@ public class GithubWidgetConstant {
     public static final String USER_ID_KEY = "github_user_id";
     public static final String NOTIFICATIONS_KEY = "widget_notifications";
 
-    // PendingIntent 요청 코드
     public static final int PENDING_INTENT_APP_LAUNCH = 1;
     public static final int PENDING_INTENT_REFRESH = 2;
 }

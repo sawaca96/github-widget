@@ -44,25 +44,23 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:divider="#33FFFFFF"
-            android:dividerHeight="1dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/tvNoNotifications"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="알림이 없습니다."
-            android:textColor="#BBBBBB"
-            android:visibility="visible" />
-
+            android:dividerHeight="1dp" />
         <ProgressBar
             android:id="@+id/pbListLoading"
             style="?android:attr/progressBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+        <TextView
+            android:id="@+id/tvEmptyNotifications"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:visibility="gone" />
+            android:textColor="#8B949E"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:gravity="center"/>
+
     </FrameLayout>
 
 </LinearLayout> 
