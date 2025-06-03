@@ -44,7 +44,8 @@ public class GithubClient {
     }
 
     public List<Notification> fetchNotifications() {
-        Call<List<com.sawaca96.githubwidget.network.dto.Notification>> call = apiService.getNotifications(this.token);
+        Call<List<com.sawaca96.githubwidget.network.dto.Notification>> call = apiService.getNotifications(this.token,
+                true);
 
         try {
             Response<List<com.sawaca96.githubwidget.network.dto.Notification>> response = call.execute();
