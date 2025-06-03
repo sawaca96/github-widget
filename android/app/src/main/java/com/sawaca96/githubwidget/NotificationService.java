@@ -190,8 +190,23 @@ public class NotificationService extends Service {
                         } else if (finalNotifications.isEmpty()) {
                             updateWidgetViewVisibility(views, "empty");
                         } else {
-                            views.setRemoteAdapter(R.id.lvNotifications,
-                                    new Intent(this, NotificationRemoteViewsService.class));
+                            Intent remoteAdapterIntent = new Intent(this, NotificationRemoteViewsService.class);
+                            views.setRemoteAdapter(R.id.lvNotifications, remoteAdapterIntent);
+
+                            Intent clickIntentTemplate = new Intent(Intent.ACTION_VIEW);
+
+                            int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                flags |= PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT;
+                            }
+
+                            PendingIntent clickPendingIntentTemplate = PendingIntent.getActivity(
+                                    this,
+                                    appWidgetId * 100 + GithubWidgetConstant.PENDING_INTENT_ITEM_CLICK,
+                                    clickIntentTemplate,
+                                    flags);
+                            views.setPendingIntentTemplate(R.id.lvNotifications, clickPendingIntentTemplate);
+
                             updateWidgetViewVisibility(views, "list");
                         }
 
@@ -250,7 +265,6 @@ public class NotificationService extends Service {
             // 앱 실행 PendingIntent
             Intent appLaunchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
             if (appLaunchIntent != null) {
-                appLaunchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 PendingIntent appPendingIntent = PendingIntent.getActivity(
                         this,
                         appWidgetId * 100 + GithubWidgetConstant.PENDING_INTENT_APP_LAUNCH,

@@ -1,8 +1,10 @@
 package com.sawaca96.githubwidget;
 
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.text.SpannableString;
 import android.util.Log;
 import android.widget.RemoteViews;
@@ -111,6 +113,12 @@ class NotificationRemoteViewsFactory implements RemoteViewsService.RemoteViewsFa
         rv.setTextViewText(R.id.widgetNotificationUpdatedAt, notification.timeDiff());
         rv.setTextViewText(R.id.widgetNotificationStatus, notification.getReason());
         setIcon(notification.getType(), rv);
+
+        Uri uri = Uri.parse(notification.getUrl());
+        Intent fillInIntent = new Intent();
+        fillInIntent.setData(uri);
+        rv.setOnClickFillInIntent(R.id.widgetNotification, fillInIntent);
+
         return rv;
     }
 
