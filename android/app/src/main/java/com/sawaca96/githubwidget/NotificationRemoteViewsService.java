@@ -114,10 +114,15 @@ class NotificationRemoteViewsFactory implements RemoteViewsService.RemoteViewsFa
         rv.setTextViewText(R.id.widgetNotificationStatus, notification.getReason());
         setIcon(notification.getType(), rv);
 
-        Uri uri = Uri.parse(notification.getUrl());
-        Intent fillInIntent = new Intent();
-        fillInIntent.setData(uri);
-        rv.setOnClickFillInIntent(R.id.widgetNotification, fillInIntent);
+        String url = notification.getUrl();
+        if (url != null && url.startsWith("https://github.com")) {
+            Uri uri = Uri.parse(url);
+            Intent fillInIntent = new Intent();
+            fillInIntent.setData(uri);
+            rv.setOnClickFillInIntent(R.id.widgetNotification, fillInIntent);
+        } else {
+            Log.w(TAG, "Invalid or non-GitHub URL for notification item: " + url);
+        }
 
         return rv;
     }
