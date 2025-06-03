@@ -137,7 +137,7 @@ public class NotificationService extends Service {
         int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
 
         if (appWidgetIds == null || appWidgetIds.length == 0) {
-            Log.e(TAG, "업데이트할 위젯이 없음 - 서비스 종료");
+            Log.w(TAG, "업데이트할 위젯이 없음 - 서비스 종료");
             stopSelf();
             return;
         }
@@ -177,7 +177,7 @@ public class NotificationService extends Service {
             try {
                 notifications = githubClient.fetchNotifications();
             } catch (Exception e) {
-                Log.e(TAG, "알림 가져오기 실패: " + e.getMessage(), e);
+                Log.w(TAG, "알림 가져오기 실패: " + e.getMessage(), e);
             } finally {
                 saveNotificationsToPrefs(notifications);
                 List<Notification> finalNotifications = notifications;
@@ -233,7 +233,7 @@ public class NotificationService extends Service {
                 String jsonString = gson.toJson(notifications);
                 editor.putString(NOTIFICATIONS_KEY, jsonString);
             } catch (Exception e) {
-                Log.e(TAG, "알림 저장 실패 (Gson 직렬화 오류): " + e.getMessage(), e);
+                Log.w(TAG, "알림 저장 실패 (Gson 직렬화 오류): " + e.getMessage(), e);
                 editor.remove(NOTIFICATIONS_KEY);
             }
         }
@@ -247,7 +247,7 @@ public class NotificationService extends Service {
         if (appWidgetIds != null && appWidgetIds.length > 0) {
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.lvNotifications);
         } else {
-            Log.e(TAG, "데이터 변경 알림을 보낼 위젯이 없음");
+            Log.w(TAG, "데이터 변경 알림을 보낼 위젯이 없음");
         }
     }
 
@@ -272,7 +272,7 @@ public class NotificationService extends Service {
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 views.setOnClickPendingIntent(R.id.tvWidgetTitle, appPendingIntent);
             } else {
-                Log.e(TAG, "앱 실행 Intent를 찾을 수 없음");
+                Log.w(TAG, "앱 실행 Intent를 찾을 수 없음");
             }
 
             // 새로고침 PendingIntent
@@ -285,7 +285,7 @@ public class NotificationService extends Service {
             views.setOnClickPendingIntent(R.id.btnRefresh, refreshPendingIntent);
 
         } catch (Exception e) {
-            Log.e(TAG, "PendingIntent 설정 오류: " + e.getMessage(), e);
+            Log.w(TAG, "PendingIntent 설정 오류: " + e.getMessage(), e);
         }
 
         return views;

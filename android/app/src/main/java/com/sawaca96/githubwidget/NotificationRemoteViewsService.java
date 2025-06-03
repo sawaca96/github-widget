@@ -55,7 +55,7 @@ class NotificationRemoteViewsFactory implements RemoteViewsService.RemoteViewsFa
                     notifications.addAll(loadedNotifications);
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error parsing notifications from SharedPreferences: " + e.getMessage());
+                Log.w(TAG, "Error parsing notifications from SharedPreferences: " + e.getMessage());
                 notifications.clear();
             }
         }
