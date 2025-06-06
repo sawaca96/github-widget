@@ -6,11 +6,25 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
 import android.util.Log;
-import androidx.core.content.ContextCompat;
+
+import androidx.work.Constraints;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 public class GitHubWidgetProvider extends AppWidgetProvider {
     private static final String TAG = "GitHubWidgetProvider";
     private static final String PREFS_NAME = GithubWidgetConstant.PREFS_NAME;
+    private static final String UNIQUE_WORK_NAME = GithubWidgetConstant.UNIQUE_WORK_NAME;
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (intent.getAction() != null && intent.getAction().equals(GithubWidgetConstant.ACTION_REFRESH)) {
+            WidgetUpdateScheduler.scheduleUpdate(context);
+        }
+        super.onReceive(context, intent);
+    }
 
     /**
      * 위젯의 마지막 인스턴스가 제거될 때 호출됩니다.
@@ -21,6 +35,7 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
     public void onDisabled(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit().remove(GithubWidgetConstant.NOTIFICATIONS_KEY).apply();
+        WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME);
     }
 
     /**
@@ -38,18 +53,6 @@ public class GitHubWidgetProvider extends AppWidgetProvider {
      */
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        try {
-            Intent serviceIntent = new Intent(context, NotificationService.class);
-            /*
-             * Android 8.0 (API 레벨 26)부터 백그라운드에서 서비스 실행에 제한이 생겼습니다.
-             * 앱이 백그라운드에 있을 때 일반 startService()를 호출하면 IllegalStateException이 발생할 수 있습니다.
-             * ContextCompat.startForegroundService()는 이러한 제한 하에서도 서비스를 시작할 수 있게 합니다.
-             * 호출되면, 서비스는 5초 이내에 startForeground()를 호출하여 사용자에게 보이는 알림을 표시해야 합니다.
-             * 이는 Android 8.0 이상에서 서비스가 예기치 않게 종료될 위험이 있음을 의미합니다.
-             */
-            ContextCompat.startForegroundService(context, serviceIntent);
-        } catch (Exception e) {
-            Log.e(TAG, "서비스 시작 오류: " + e.getMessage());
-        }
+        WidgetUpdateScheduler.scheduleUpdate(context);
     }
 }

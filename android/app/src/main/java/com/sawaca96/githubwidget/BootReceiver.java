@@ -5,6 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import androidx.core.content.ContextCompat;
+import androidx.work.Constraints;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 /**
  * 부팅 완료 및 앱 업데이트 시 GitHub 위젯 서비스를 자동으로 시작하는 클래스
@@ -29,13 +34,7 @@ public class BootReceiver extends BroadcastReceiver {
 
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) ||
                 Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
-
-            try {
-                Intent serviceIntent = new Intent(context, NotificationService.class);
-                ContextCompat.startForegroundService(context, serviceIntent);
-            } catch (Exception e) {
-                Log.e(TAG, "서비스 시작 오류: " + e.getMessage());
-            }
+            WidgetUpdateScheduler.scheduleUpdate(context);
         }
     }
 }
