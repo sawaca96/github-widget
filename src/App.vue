@@ -1,16 +1,13 @@
 <template>
   <ion-app>
-    <ion-router-outlet v-if="authReady" />
-    <div v-else class="loading-container">
-      <ion-spinner name="crescent" />
-    </div>
+    <ion-router-outlet />
   </ion-app>
 </template>
 
 <script setup lang="ts">
-import { IonApp, IonRouterOutlet, IonSpinner } from '@ionic/vue';
+import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import { onMounted, onUnmounted } from 'vue';
-import { setupAuthStateListener, authReady } from '@/services/auth';
+import { setupAuthStateListener } from '@/services/auth';
 
 let removeAuthListener: (() => Promise<void>) | null = null;
 

@@ -42,7 +42,6 @@ const checkAuthState = async (): Promise<boolean> => {
   }
 };
 
-// 네비게이션 가드 설정
 router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   

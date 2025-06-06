@@ -2,9 +2,7 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import type { AuthStateChange, SignInResult, User } from '@capacitor-firebase/authentication';
 import { ref } from 'vue';
 
-// 현재 사용자 상태를 관리하는 반응형 참조
 export const currentUser = ref<User | null>(null);
-export const authReady = ref(false);
 
 /**
  * GitHub로 로그인
@@ -44,11 +42,9 @@ export const setupAuthStateListener = async (): Promise<() => Promise<void>> => 
   const listener = await FirebaseAuthentication.addListener('authStateChange', 
     (change: AuthStateChange) => {
       currentUser.value = change.user;
-      authReady.value = true;
     }
   );
   
-  // 초기 사용자 상태 가져오기
   try {
     const result = await FirebaseAuthentication.getCurrentUser();
     currentUser.value = result.user;
@@ -59,16 +55,3 @@ export const setupAuthStateListener = async (): Promise<() => Promise<void>> => 
   return listener.remove;
 };
 
-/**
- * 현재 인증된 사용자 가져오기
- * @returns 현재 인증된 사용자 정보
- */
-export const getCurrentUser = async (): Promise<User | null> => {
-  try {
-    const result = await FirebaseAuthentication.getCurrentUser();
-    return result.user;
-  } catch (error) {
-    console.error('현재 사용자 가져오기 오류:', error);
-    return null;
-  }
-}; 

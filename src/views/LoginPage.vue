@@ -9,17 +9,16 @@
         <ion-content :fullscreen="true" class="ion-padding">
             <div class="login-container">
                 <h1>GitHub Widget</h1>
-                <p>GitHub 계정으로 로그인하여 시작하세요</p>
-
-                <ion-button @click="handleGithubLogin" expand="block" color="dark" class="github-button"
-                    :disabled="loading">
-                    <ion-icon :icon="logoGithub" slot="start"></ion-icon>
-                    GitHub 계정으로 로그인
-                </ion-button>
+                <p>Sign in with your GitHub account to get started</p>
 
                 <ion-spinner v-if="loading" name="crescent" class="spinner"></ion-spinner>
+                <ion-button v-else @click="handleGithubLogin" expand="block" color="dark" class="github-button"
+                    :disabled="loading">
+                    <ion-icon :icon="logoGithub" slot="start"></ion-icon>
+                    Sign in with GitHub
+                </ion-button>
 
-                <ion-text color="danger" v-if="error">
+                <ion-text color="danger" v-if="error" class="error-message">
                     {{ error }}
                 </ion-text>
             </div>
@@ -28,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { logoGithub } from 'ionicons/icons';
 import {
@@ -43,33 +42,14 @@ import {
     IonText,
     toastController
 } from '@ionic/vue';
-import { signInWithGithub, currentUser } from '../services/auth';
-import { saveGitHubToken, getGitHubToken } from '../services/github';
+import { signInWithGithub } from '../services/auth';
+import { saveGitHubToken } from '../services/github';
+import { Capacitor } from '@capacitor/core';
 
 const router = useRouter();
+
 const loading = ref(false);
 const error = ref('');
-
-onMounted(() => {
-    if (currentUser.value) {
-        // 이미 로그인되어 있는 경우 토큰 확인
-        checkTokenAndRedirect();
-    }
-});
-
-/**
- * 저장된 GitHub 토큰 확인 후 홈으로 리다이렉트
- */
-const checkTokenAndRedirect = async () => {
-    try {
-        const tokenInfo = await getGitHubToken();
-        if (tokenInfo.token) {
-            router.replace('/home');
-        }
-    } catch (err) {
-        console.error('토큰 확인 오류:', err);
-    }
-};
 
 const handleGithubLogin = async () => {
     loading.value = true;
@@ -77,49 +57,48 @@ const handleGithubLogin = async () => {
 
     try {
         const result = await signInWithGithub();
-        let tokenSaved = false;
-
-        try {
-            if (result.credential?.accessToken) {
-                await saveGitHubToken(
-                    result.credential.accessToken,
-                    result.user?.uid,
-                    result.user?.displayName || result.user?.email?.split('@')[0] || 'github-user'
-                );
-                tokenSaved = true;
-            } else {
-                console.error('GitHub 액세스 토큰이 없습니다.');
-                error.value = 'GitHub 액세스 토큰을 받지 못했습니다. 다시 로그인해주세요.';
-            }
-        } catch (tokenError) {
-            console.error('GitHub 토큰 저장 오류:', tokenError);
-            error.value = 'GitHub 토큰 저장 중 오류가 발생했습니다. 다시 시도해주세요.';
-        }
-
-        const toastMessage = tokenSaved
-            ? `안녕하세요, ${result.user?.displayName || '사용자'}님! GitHub 토큰이 저장되었습니다.`
-            : `안녕하세요, ${result.user?.displayName || '사용자'}님! 주의: GitHub 토큰 저장에 실패했습니다.`;
-
-        const toast = await toastController.create({
-            message: toastMessage,
-            duration: 3000,
-            position: 'bottom',
-            color: tokenSaved ? 'success' : 'warning'
-        });
-
-        await toast.present();
-
-        if (tokenSaved) {
-            // 토큰이 성공적으로 저장된 경우에만 홈으로 이동
-            router.replace('/home');
+        if (Capacitor.isNativePlatform()) {
+            await handleNativeLogin(result);
+        } else {
+            handleWebLogin();
         }
     } catch (err: any) {
-        error.value = '로그인 중 문제가 발생했습니다. 다시 시도해주세요.';
-        console.error('로그인 오류:', err);
+        error.value = 'An error occurred while logging in. Please try again.';
     } finally {
         loading.value = false;
     }
 };
+
+const handleWebLogin = () => {
+    router.replace('/home');
+};
+
+const handleNativeLogin = async (result: any) => {
+    try {
+        const accessToken = result.credential?.accessToken;
+        if (!accessToken) {
+            error.value = 'Failed to receive GitHub access token. Please try again.';
+            return;
+        }
+
+        const displayName = result.user?.displayName || result.user?.email?.split('@')[0] || 'github-user';
+        await saveGitHubToken(accessToken, result.user?.uid, displayName);
+
+        const toast = await toastController.create({
+            message: `Hello, ${displayName}! GitHub token has been saved.`,
+            duration: 3000,
+            position: 'bottom',
+            color: 'success'
+        });
+        await toast.present();
+
+        router.replace('/home');
+    } catch (tokenError) {
+        error.value = 'An error occurred while saving the GitHub token. Please try again.';
+    }
+};
+
+
 </script>
 
 <style scoped>
@@ -140,6 +119,12 @@ const handleGithubLogin = async () => {
 }
 
 .spinner {
+    height: 36px;
+    margin-top: 20px;
+    margin-bottom: 4px;
+}
+
+.error-message {
     margin-top: 20px;
 }
 </style>

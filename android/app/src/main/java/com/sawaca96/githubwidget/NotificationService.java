@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-// TODO: 로그아웃시 토큰 제거
-// TODO: 로그인 하고 리프래시 버튼 해도 데이터 안보임
 
 public class NotificationService extends Service {
     private static final String TAG = "NotificationService";
