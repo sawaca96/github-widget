@@ -101,6 +101,7 @@ public class NotificationWorker extends Worker {
 
                         int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE;
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            // 암시적 인텐트에서는 FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT 추가 필요
                             flags |= PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT;
                         }
 
@@ -182,8 +183,6 @@ public class NotificationWorker extends Worker {
                 Log.w(TAG, "앱 실행 Intent를 찾을 수 없음");
             }
 
-            // `WorkManager`는 고유한 작업 이름을 통해 중복을 방지하므로,
-            // 수동 새로고침도 WorkManager를 통해 실행하는 것이 일관성 있습니다.
             Intent refreshIntent = new Intent(context, GitHubWidgetProvider.class);
             refreshIntent.setAction(GithubWidgetConstant.ACTION_REFRESH);
             PendingIntent refreshPendingIntent = PendingIntent.getBroadcast(

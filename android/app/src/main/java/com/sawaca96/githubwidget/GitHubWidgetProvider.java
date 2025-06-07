@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
-import android.util.Log;
 
 import androidx.work.Constraints;
 import androidx.work.ExistingWorkPolicy;
