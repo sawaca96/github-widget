@@ -22,36 +22,6 @@
             <ion-card-subtitle>{{ currentUser.email }}</ion-card-subtitle>
           </div>
         </ion-card-content>
-
-        <ion-card class="widget-info-card">
-          <ion-card-header>
-            <ion-card-title>Widget Installation Guide</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <div v-if="isPlatform('ios')">
-              <h4>iOS</h4>
-              <ol>
-                <li>Long press the app icon from the app list to open the menu.</li>
-                <li>Select 'Widgets' from the menu.</li>
-                <li>Find and select 'GitHub Widget' from the widget list.</li>
-                <li>Select the desired widget and press the 'Add' button.</li>
-              </ol>
-            </div>
-            <div v-else-if="isPlatform('android')">
-              <h4>Android</h4>
-              <ol>
-                <li>Long-press an empty space on the home screen.</li>
-                <li>Click the 'Edit' button in the top right corner.</li>
-                <li>Select the App Widget button.</li>
-                <li>Find and select 'GitHub Widget' from the widget list.</li>
-                <li>Select the widget you want and tap the 'Add' button.</li>
-              </ol>
-            </div>
-            <div v-else>
-              <p>Widget installation is not supported on the current platform.</p>
-            </div>
-          </ion-card-content>
-        </ion-card>
       </div>
     </ion-content>
   </ion-page>
@@ -70,12 +40,9 @@ import {
   IonIcon,
   IonAvatar,
   toastController,
-  IonCard,
   IonCardContent,
   IonCardTitle,
   IonCardSubtitle,
-  isPlatform,
-  IonCardHeader,
 } from '@ionic/vue';
 import { currentUser, logOut } from '@/services/auth';
 import { clearGitHubToken } from '@/services/github';
@@ -123,26 +90,6 @@ ion-avatar {
   width: 80px;
   height: 80px;
   margin-right: 16px;
-}
-
-.widget-info-card {
-  margin-top: 20px;
-  width: 100%;
-}
-
-.widget-info-card h4 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-
-.widget-info-card ol {
-  padding-left: 20px;
-  margin: 0;
-}
-
-.widget-info-card li:not(:last-child) {
-  margin-bottom: 8px;
 }
 
 .not-logged-in {
