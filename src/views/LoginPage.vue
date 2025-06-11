@@ -43,7 +43,6 @@ import {
     toastController
 } from '@ionic/vue';
 import { signInWithGithub } from '../services/auth';
-import { saveGitHubToken } from '../services/github';
 import { Capacitor } from '@capacitor/core';
 
 const router = useRouter();
@@ -74,28 +73,17 @@ const handleWebLogin = () => {
 };
 
 const handleNativeLogin = async (result: any) => {
-    try {
-        const accessToken = result.credential?.accessToken;
-        if (!accessToken) {
-            error.value = 'Failed to receive GitHub access token. Please try again.';
-            return;
-        }
+    const displayName = result.user?.displayName || result.user?.email?.split('@')[0] || 'github-user';
 
-        const displayName = result.user?.displayName || result.user?.email?.split('@')[0] || 'github-user';
-        await saveGitHubToken(accessToken, result.user?.uid, displayName);
+    const toast = await toastController.create({
+        message: `Hello, ${displayName}! You are logged in.`,
+        duration: 3000,
+        position: 'bottom',
+        color: 'success'
+    });
+    await toast.present();
 
-        const toast = await toastController.create({
-            message: `Hello, ${displayName}! GitHub token has been saved.`,
-            duration: 3000,
-            position: 'bottom',
-            color: 'success'
-        });
-        await toast.present();
-
-        router.replace('/home');
-    } catch (tokenError) {
-        error.value = 'An error occurred while saving the GitHub token. Please try again.';
-    }
+    router.replace('/home');
 };
 
 
