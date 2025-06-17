@@ -2,3 +2,7 @@
 !/build/.npmkeep
 
 google-services.json
+
+# Keystore file
+*.jks
+keystore.properties
